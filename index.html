@@ -11,7 +11,9 @@
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-mark">⚡</div>
+        <button class="avatar" id="profileBtn" title="Open Admin Profile">
+  A
+</button>
         <div><strong>SwitchSync</strong><span>Smart Home OS</span></div>
       </div>
       <nav>
@@ -76,6 +78,61 @@
     </main>
   </div>
   <div class="toast" id="toast"></div>
+  <!-- =========================
+     ADMIN PROFILE PANEL
+     ========================= -->
+
+<div class="profile-overlay" id="profileOverlay">
+
+  <div class="profile-panel">
+
+    <button class="profile-close" id="profileClose">
+      ×
+    </button>
+
+    <div class="profile-avatar">
+      A
+    </div>
+
+    <h2>Admin</h2>
+
+    <p class="profile-role">
+      Home Administrator
+    </p>
+
+    <div class="profile-info">
+
+      <div class="profile-row">
+        <span>System</span>
+        <strong>SwitchSync</strong>
+      </div>
+
+      <div class="profile-row">
+        <span>Devices</span>
+        <strong>20</strong>
+      </div>
+
+      <div class="profile-row">
+        <span>Current Mode</span>
+        <strong id="profileMode">At Home</strong>
+      </div>
+
+      <div class="profile-row">
+        <span>System Status</span>
+        <strong class="profile-online">
+          ● Online
+        </strong>
+      </div>
+
+    </div>
+
+    <button class="profile-done" id="profileDone">
+      Close
+    </button>
+
+  </div>
+
+</div>
   <script src="app.js"></script>
 </body>
 </html>
