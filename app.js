@@ -40,5 +40,74 @@ function renderLog(){$('activityLog').innerHTML=log.length?log.map(x=>`<div clas
 function render(){const on=devices.filter(d=>d.on).length;$('totalDevices').textContent=devices.length;$('onDevices').textContent=on;$('onPercent').textContent=Math.round(on/devices.length*100)+'%';$('modeLabel').textContent=mode==='home'?'At Home':'Away';$('modeSwitch').classList.toggle('away',mode==='away');renderDevices();renderAlerts();renderEnergy();renderLog();save()}
 function showView(name){document.querySelectorAll('.view-panel,#dashboardView').forEach(x=>x.classList.add('hidden'));$(name==='dashboard'?'dashboardView':name+'View').classList.remove('hidden');document.querySelectorAll('.nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===name));$('pageTitle').textContent=name[0].toUpperCase()+name.slice(1)}
 document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.onclick=()=>{showView(b.dataset.view);$('sidebar').classList.remove('open')});document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderDevices()});
-$('modeSwitch').onclick=()=>{mode=mode==='home'?'away':'home';addLog(`Home mode changed to ${mode==='home'?'At Home':'Away'}`);if(mode==='away')toast('🚶 Away Mode enabled');render()};$('allOff').onclick=()=>{devices.forEach(d=>{d.on=false;d.runtime=0});addLog('All appliances switched OFF');toast('⏻ All appliances switched OFF');render()};$('allOn').onclick=()=>{devices.forEach(d=>d.on=true);addLog('All appliances switched ON');toast('◉ All appliances switched ON');render()};$('refreshBtn').onclick=()=>{render();toast('↻ Dashboard refreshed')};$('randomBtn').onclick=()=>{devices.forEach(d=>{if(Math.random()<.28)d.on=!d.on});addLog('Simulated household activity');toast('✦ Simulated appliance activity');render()};$('clearLog').onclick=()=>{log=[];save();renderLog();toast('Activity log cleared')};$('priceInput').oninput=e=>{price=Number(e.target.value)||8;renderEnergy()};$('speedSelect').onchange=e=>{speed=Number(e.target.value);toast('Simulation speed updated')};$('mobileMenu').onclick=()=>$('sidebar').classList.toggle('open');$('themeBtn').onclick=()=>document.body.classList.toggle('light');
-setInterval(()=>{const seconds=10*speed;devices.forEach(d=>{if(d.on)d.runtime+=seconds});render();},10000);load();render();
+$('modeSwitch').onclick=()=>{mode=mode==='home'?'away':'home';addLog(`Home mode changed to ${mode==='home'?'At Home':'Away'}`);if(mode==='away')toast('🚶 Away Mode enabled');render()};$('allOff').onclick=()=>{devices.forEach(d=>{d.on=false;d.runtime=0});addLog('All appliances switched OFF');toast('⏻ All appliances switched OFF');render()};$('allOn').onclick=()=>{devices.forEach(d=>d.on=true);addLog('All appliances switched ON');toast('◉ All appliances switched ON');render()};$('refreshBtn').onclick=()=>{render();toast('↻ Dashboard refreshed')};$('randomBtn').onclick=()=>{devices.forEach(d=>{if(Math.random()<.28)d.on=!d.on});addLog('Simulated household activity');toast('✦ Simulated appliance activity');render()};$('clearLog').onclick=()=>{log=[];save();renderLog();toast('Activity log cleared')};$('priceInput').oninput=e=>{price=Number(e.target.value)||8;renderEnergy()};$('speedSelect').onchange=e=>{speed=Number(e.target.value);toast('Simulation speed updated')};$('mobileMenu').onclick=()=>$('sidebar').classList.toggle('open');/* =========================
+   DARK / LIGHT MODE
+   ========================= */
+
+const savedTheme = localStorage.getItem('switchsync-theme');
+
+if (savedTheme === 'light') {
+  document.body.classList.add('light');
+}
+
+$('themeBtn').onclick = () => {
+
+  document.body.classList.toggle('light');
+
+  const isLight = document.body.classList.contains('light');
+
+  localStorage.setItem(
+    'switchsync-theme',
+    isLight ? 'light' : 'dark'
+  );
+
+  $('themeBtn').textContent = isLight ? '☾' : '☼';
+  
+};
+/* =========================
+   ADMIN PROFILE
+   ========================= */
+
+const profileBtn = $('profileBtn');
+const profileOverlay = $('profileOverlay');
+const profileClose = $('profileClose');
+const profileDone = $('profileDone');
+
+function openProfile() {
+  profileOverlay.classList.add('show');
+
+  const modeText =
+    mode === 'home'
+      ? 'At Home'
+      : 'Away';
+
+  $('profileMode').textContent = modeText;
+}
+
+function closeProfile() {
+  profileOverlay.classList.remove('show');
+}
+
+if (profileBtn) {
+  profileBtn.onclick = openProfile;
+}
+
+if (profileClose) {
+  profileClose.onclick = closeProfile;
+}
+
+if (profileDone) {
+  profileDone.onclick = closeProfile;
+}
+
+if (profileOverlay) {
+
+  profileOverlay.onclick = (event) => {
+
+    if (event.target === profileOverlay) {
+      closeProfile();
+    }
+
+  };
+
+}
