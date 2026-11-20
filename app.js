@@ -1,4 +1,10 @@
 
+/* =========================================
+   SWITCHSYNC - SMART HOME SIMULATION
+   ========================================= */
+
+// 1. APPLIANCE DATABASE
+
 const devices = [
   {id:'living-light',name:'Living Room Light',icon:'💡',category:'Lighting',watts:60,on:false,runtime:0,priority:false},
   {id:'bedroom-light',name:'Bedroom Light',icon:'🛏️',category:'Lighting',watts:40,on:false,runtime:0,priority:false},
@@ -22,10 +28,21 @@ const devices = [
   {id:'air-purifier',name:'Air Purifier',icon:'🌬️',category:'Climate',watts:50,on:false,runtime:0,priority:false}
 ];
 
-let mode='home', filter='all', speed=1, price=8, log=[];
+
+// 2. GLOBAL VARIABLES
+
+let mode = 'home';
+let filter = 'all';
+let speed = 1;
+let price = 8;
+let log = [];
 
 const $ = id => document.getElementById(id);
+
 const deviceById = id => devices.find(d => d.id === id);
+
+
+// 3. SAVE DATA
 
 function save() {
   localStorage.setItem('switchsync-devices', JSON.stringify(devices));
@@ -33,22 +50,33 @@ function save() {
   localStorage.setItem('switchsync-mode', mode);
 }
 
+
+// 4. LOAD SAVED DATA
+
 function load() {
   try {
     const a = JSON.parse(localStorage.getItem('switchsync-devices'));
+
     if (Array.isArray(a)) {
       a.forEach(x => {
         const d = deviceById(x.id);
+
         if (d) {
           d.on = !!x.on;
           d.runtime = Number(x.runtime) || 0;
         }
       });
     }
-  } catch {}
+  } catch (error) {
+    console.error('Device loading error:', error);
+  }
 
   try {
     log = JSON.parse(localStorage.getItem('switchsync-log')) || [];
+
+    if (!Array.isArray(log)) {
+      log = [];
+    }
   } catch {
     log = [];
   }
@@ -56,13 +84,62 @@ function load() {
   mode = localStorage.getItem('switchsync-mode') || 'home';
 }
 
+
+// 5. AUTOMATIC GREETING AND DATE
+
+function updateGreetingAndDate() {
+  const now = new Date();
+  const hour = now.getHours();
+
+  let greeting;
+
+  if (hour >= 5 && hour < 12) {
+    greeting = 'Good morning';
+  } else if (hour >= 12 && hour < 17) {
+    greeting = 'Good afternoon';
+  } else if (hour >= 17 && hour < 21) {
+    greeting = 'Good evening';
+  } else {
+    greeting = 'Good night';
+  }
+
+  const greetingElement = $('greeting');
+  const dateElement = $('currentDate');
+
+  if (greetingElement) {
+    greetingElement.textContent = greeting + ', Admin.';
+  }
+
+  if (dateElement) {
+    dateElement.textContent = now.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+}
+
+
+// 6. NOTIFICATION TOAST
+
 function toast(msg) {
   const t = $('toast');
+
+  if (!t) return;
+
   t.textContent = msg;
   t.classList.add('show');
+
   clearTimeout(window.toastTimer);
-  window.toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+
+  window.toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+  }, 2200);
 }
+
+
+// 7. ACTIVITY LOG
 
 function addLog(text) {
   log.unshift({
@@ -75,21 +152,31 @@ function addLog(text) {
   });
 
   log = log.slice(0, 60);
+
   save();
   renderLog();
 }
 
+
+// 8. APPLIANCE ON/OFF CONTROL
+
 function toggle(id, on) {
   const d = deviceById(id);
+
   if (!d) return;
 
   d.on = on;
   d.runtime = on ? d.runtime : 0;
 
   addLog(`${d.name} turned ${on ? 'ON' : 'OFF'}`);
+
   toast(`${d.icon} ${d.name} is now ${on ? 'ON' : 'OFF'}`);
+
   render();
 }
+
+
+// 9. ENERGY CALCULATION
 
 function energy() {
   return devices.reduce(
@@ -98,9 +185,17 @@ function energy() {
   );
 }
 
+
+// 10. SMART ALERTS
+
 function alerts() {
-  return devices.filter(d => d.on && d.priority && d.runtime >= 1800);
+  return devices.filter(
+    d => d.on && d.priority && d.runtime >= 1800
+  );
 }
+
+
+// 11. DEVICE FILTERING
 
 function filtered() {
   return devices.filter(
@@ -108,7 +203,9 @@ function filtered() {
   );
 }
 
-// DIGITAL APPLIANCE RUNTIME FORMAT
+
+// 12. DIGITAL RUNTIME FORMAT
+
 function formatRuntime(s) {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -117,38 +214,59 @@ function formatRuntime(s) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 
+
+// 13. APPLIANCE CARD
+
 function card(d) {
   return `<article class="device-card ${d.on ? 'is-on' : ''}">
     <div class="device-top">
       <div class="device-icon">${d.icon}</div>
+
       <div class="status-dot ${d.on ? 'on' : ''}">
         ${d.on ? '● ON' : '○ OFF'}
       </div>
     </div>
+
     <h3>${d.name}</h3>
+
     <p>${d.category} • ${d.watts} W</p>
+
     <div class="device-bottom">
       <span class="watts">${d.on ? formatRuntime(d.runtime) : 'Standby'}</span>
-      <button class="toggle ${d.on ? 'on' : ''}" data-toggle="${d.id}" aria-label="Toggle ${d.name}">
+
+      <button class="toggle ${d.on ? 'on' : ''}"
+        data-toggle="${d.id}"
+        aria-label="Toggle ${d.name}">
         <span></span>
       </button>
     </div>
   </article>`;
 }
 
+
+// 14. RENDER APPLIANCES
+
 function renderDevices() {
   const html = filtered().map(card).join('');
 
-  $('deviceGrid').innerHTML = html || '<div class="empty">No devices match this filter.</div>';
+  $('deviceGrid').innerHTML =
+    html || '<div class="empty">No devices match this filter.</div>';
+
   $('allDeviceGrid').innerHTML = devices.map(card).join('');
 
   document.querySelectorAll('[data-toggle]').forEach(b => {
     b.onclick = () => {
       const d = deviceById(b.dataset.toggle);
-      toggle(d.id, !d.on);
+
+      if (d) {
+        toggle(d.id, !d.on);
+      }
     };
   });
 }
+
+
+// 15. RENDER SMART ALERTS
 
 function renderAlerts() {
   const a = alerts();
@@ -160,6 +278,7 @@ function renderAlerts() {
   $('alerts').innerHTML = a.length
     ? a.map(d => `<div class="alert-item">
         <div class="alert-symbol">!</div>
+
         <div>
           <b>${d.name} has been ON for a long time</b>
           <small>${formatRuntime(d.runtime)} • Consider switching it off.</small>
@@ -168,6 +287,9 @@ function renderAlerts() {
     : '<div class="empty">✓ No critical appliance alerts.</div>';
 }
 
+
+// 16. RENDER ENERGY CENTER
+
 function renderEnergy() {
   const e = energy();
 
@@ -175,11 +297,14 @@ function renderEnergy() {
   $('energyCost').textContent = '₹' + (e * price).toFixed(2);
 
   const max = Math.max(
-    ...devices.map(d => d.watts / 1000 * (Math.max(d.runtime, 900) / 3600)),
+    ...devices.map(d =>
+      d.watts / 1000 * (Math.max(d.runtime, 900) / 3600)
+    ),
     1
   );
 
-  $('energyBar').style.width = Math.min(100, e / (max * 5) * 100) + '%';
+  $('energyBar').style.width =
+    Math.min(100, e / (max * 5) * 100) + '%';
 
   $('energyRows').innerHTML = devices.map(d => {
     const v = d.on ? d.watts / 1000 * (d.runtime / 3600) : 0;
@@ -189,10 +314,14 @@ function renderEnergy() {
         <b>${d.icon} ${d.name}</b>
         <small>${d.watts} W</small>
       </div>
+
       <b>${v.toFixed(3)} kWh</b>
     </div>`;
   }).join('');
 }
+
+
+// 17. RENDER ACTIVITY LOG
 
 function renderLog() {
   $('activityLog').innerHTML = log.length
@@ -203,38 +332,55 @@ function renderLog() {
     : '<div class="empty">No activity yet.</div>';
 }
 
+
+// 18. MAIN DASHBOARD RENDER
+
 function render() {
+  updateGreetingAndDate();
+
   const on = devices.filter(d => d.on).length;
 
   $('totalDevices').textContent = devices.length;
   $('onDevices').textContent = on;
-  $('onPercent').textContent = Math.round(on / devices.length * 100) + '%';
 
-  $('modeLabel').textContent = mode === 'home' ? 'At Home' : 'Away';
+  $('onPercent').textContent =
+    Math.round(on / devices.length * 100) + '%';
+
+  $('modeLabel').textContent =
+    mode === 'home' ? 'At Home' : 'Away';
+
   $('modeSwitch').classList.toggle('away', mode === 'away');
 
   renderDevices();
   renderAlerts();
   renderEnergy();
   renderLog();
+
   save();
 }
+
+
+// 19. PAGE NAVIGATION
 
 function showView(name) {
   document.querySelectorAll('.view-panel,#dashboardView').forEach(x => {
     x.classList.add('hidden');
   });
 
-  $(name === 'dashboard' ? 'dashboardView' : name + 'View').classList.remove('hidden');
+  $(name === 'dashboard' ? 'dashboardView' : name + 'View')
+    .classList.remove('hidden');
 
   document.querySelectorAll('.nav-item[data-view]').forEach(x => {
     x.classList.toggle('active', x.dataset.view === name);
   });
 
-  $('pageTitle').textContent = name[0].toUpperCase() + name.slice(1);
+  $('pageTitle').textContent =
+    name[0].toUpperCase() + name.slice(1);
 }
 
-// NAVIGATION
+
+// 20. NAVIGATION BUTTONS
+
 document.querySelectorAll('.nav-item[data-view]').forEach(b => {
   b.onclick = () => {
     showView(b.dataset.view);
@@ -242,7 +388,9 @@ document.querySelectorAll('.nav-item[data-view]').forEach(b => {
   };
 });
 
-// DEVICE FILTERS
+
+// 21. FILTER BUTTONS
+
 document.querySelectorAll('.filter').forEach(b => {
   b.onclick = () => {
     filter = b.dataset.filter;
@@ -252,11 +400,14 @@ document.querySelectorAll('.filter').forEach(b => {
     });
 
     b.classList.add('active');
+
     renderDevices();
   };
 });
 
-// HOME / AWAY MODE
+
+// 22. HOME AND AWAY MODE
+
 $('modeSwitch').onclick = () => {
   mode = mode === 'home' ? 'away' : 'home';
 
@@ -265,9 +416,10 @@ $('modeSwitch').onclick = () => {
   if (mode === 'away') {
     const activeDevices = devices.filter(d => d.on);
 
-    toast(activeDevices.length
-      ? `⚠️ ${activeDevices.length} appliances are still ON`
-      : '✈️ Away Mode enabled — all appliances are OFF'
+    toast(
+      activeDevices.length
+        ? `⚠️ ${activeDevices.length} appliances are still ON`
+        : '✈️ Away Mode enabled — all appliances are OFF'
     );
   } else {
     toast('🏠 At Home mode enabled');
@@ -276,7 +428,9 @@ $('modeSwitch').onclick = () => {
   render();
 };
 
-// TURN EVERYTHING OFF
+
+// 23. TURN EVERYTHING OFF
+
 $('allOff').onclick = () => {
   devices.forEach(d => {
     d.on = false;
@@ -284,26 +438,38 @@ $('allOff').onclick = () => {
   });
 
   addLog('All appliances switched OFF');
+
   toast('⏻ All appliances switched OFF');
+
   render();
 };
 
-// TURN EVERYTHING ON
+
+// 24. TURN EVERYTHING ON
+
 $('allOn').onclick = () => {
-  devices.forEach(d => d.on = true);
+  devices.forEach(d => {
+    d.on = true;
+  });
 
   addLog('All appliances switched ON');
+
   toast('◉ All appliances switched ON');
+
   render();
 };
 
-// REFRESH
+
+// 25. REFRESH SIMULATION
+
 $('refreshBtn').onclick = () => {
   render();
   toast('↻ Dashboard refreshed');
 };
 
-// SIMULATE ACTIVITY
+
+// 26. SIMULATE HOUSEHOLD ACTIVITY
+
 $('randomBtn').onclick = () => {
   devices.forEach(d => {
     if (Math.random() < 0.28) {
@@ -312,36 +478,52 @@ $('randomBtn').onclick = () => {
   });
 
   addLog('Simulated household activity');
+
   toast('✦ Simulated appliance activity');
+
   render();
 };
 
-// CLEAR ACTIVITY LOG
+
+// 27. CLEAR ACTIVITY LOG
+
 $('clearLog').onclick = () => {
   log = [];
+
   save();
   renderLog();
+
   toast('Activity log cleared');
 };
 
-// ENERGY PRICE
+
+// 28. ELECTRICITY PRICE SETTING
+
 $('priceInput').oninput = e => {
   price = Number(e.target.value) || 8;
+
   renderEnergy();
 };
 
-// SIMULATION SPEED
+
+// 29. SIMULATION SPEED SETTING
+
 $('speedSelect').onchange = e => {
   speed = Number(e.target.value);
+
   toast('Simulation speed updated');
 };
 
-// MOBILE MENU
+
+// 30. MOBILE MENU
+
 $('mobileMenu').onclick = () => {
   $('sidebar').classList.toggle('open');
 };
 
-// DARK / LIGHT MODE
+
+// 31. DARK / LIGHT MODE
+
 const savedTheme = localStorage.getItem('switchsync-theme');
 
 if (savedTheme === 'light') {
@@ -354,11 +536,17 @@ $('themeBtn').onclick = () => {
 
   const isLight = document.body.classList.contains('light');
 
-  localStorage.setItem('switchsync-theme', isLight ? 'light' : 'dark');
+  localStorage.setItem(
+    'switchsync-theme',
+    isLight ? 'light' : 'dark'
+  );
+
   $('themeBtn').textContent = isLight ? '☾' : '☼';
 };
 
-// ADMIN PROFILE
+
+// 32. ADMIN PROFILE
+
 const profileBtn = $('profileBtn');
 const profileOverlay = $('profileOverlay');
 const profileClose = $('profileClose');
@@ -382,9 +570,17 @@ function closeProfile() {
   }
 }
 
-if (profileBtn) profileBtn.onclick = openProfile;
-if (profileClose) profileClose.onclick = closeProfile;
-if (profileDone) profileDone.onclick = closeProfile;
+if (profileBtn) {
+  profileBtn.onclick = openProfile;
+}
+
+if (profileClose) {
+  profileClose.onclick = closeProfile;
+}
+
+if (profileDone) {
+  profileDone.onclick = closeProfile;
+}
 
 if (profileOverlay) {
   profileOverlay.onclick = event => {
@@ -394,11 +590,15 @@ if (profileOverlay) {
   };
 }
 
-// LOAD SAVED DATA AND DISPLAY DASHBOARD
+
+// 33. INITIALIZE WEBSITE
+
 load();
 render();
 
-// APPLIANCE RUNTIME TIMER
+
+// 34. APPLIANCE RUNTIME TIMER
+
 setInterval(() => {
   devices.forEach(d => {
     if (d.on) {
