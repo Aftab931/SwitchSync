@@ -5,70 +5,50 @@ A first-year engineering CTI project: a web-based smart-home monitoring and cont
 
 ## Features
 
-- Dashboard for 20 household appliances.
-- Appliance ON/OFF simulation.
-- Home Mode and Away Mode.
-- Travel Mode with departure and return dates.
-- Travel planning and appliance safety checklist.
-- Switch-all-appliances-OFF option for travel preparation.
-- Automatic date, weekday and greeting updates.
-- Smart alerts for appliances running for a long time.
-- Estimated electricity consumption and cost.
-- Activity log.
-- Dark and light theme.
-- Admin profile panel.
-- Local storage to preserve simulated device states and trip plans.
+- 20 simulated household appliances
+- Individual appliance ON/OFF controls
+- Dashboard with live appliance statistics
+- Home Mode and Away Mode
+- Travel Mode with departure and return dates
+- Save Trip Plan feature
+- Activate Travel Mode feature
+- Switch All Appliances OFF feature
+- Home Safety Checklist
+- Energy consumption estimates
+- Estimated electricity cost
+- Smart appliance alerts
+- Activity log
+- Dark and Light themes
+- Admin profile
+- Automatic date and greeting
+- Local browser storage using localStorage
 
 ## Technologies Used
 
-- HTML5 – Website structure.
-- CSS3 – Styling, layout and responsive design.
-- JavaScript – Appliance controls, calculations, date updates and Travel Mode.
-- LocalStorage – Saving website settings and simulation data.
-- Node.js and Express – Local backend.
+- HTML
+- CSS
+- JavaScript
+- Browser Local Storage
 
-## How to Run Locally
+## Run Locally
 
-1. Install Node.js LTS from https://nodejs.org/
-2. Open the SwitchSync project folder in VS Code.
-3. Open the terminal.
-4. Run:
-
-   npm install
-
-5. Start the project:
-
-   npm start
-
-6. Open the following address:
-
-   http://localhost:3000
-
-7. Stop the server using Ctrl + C.
+1. Install Node.js if your project uses the Express backend.
+2. Open the project folder in VS Code.
+3. Open index.html in your browser, or run your existing local server.
+4. Use the dashboard to control simulated appliances.
+5. Open Travel Mode to plan and activate a simulated trip.
 
 ## Travel Mode
 
-Travel Mode allows users to enter their departure and return dates, save trip information and review the status of household appliances.
+1. Open the Travel Mode page.
+2. Select the departure date.
+3. Select the return date.
+4. Enter optional trip details.
+5. Click Save Trip Plan.
+6. Click Activate Travel Mode.
+7. Click Switch All Appliances OFF to switch off every simulated appliance.
+8. Use the Home Safety Checklist to verify the appliance statuses.
 
-The user can activate Travel Mode and switch all simulated appliances OFF before leaving.
+## Important Note
 
-The Travel Checklist displays which appliances are ON and OFF.
-
-## Dynamic Date and Greeting
-
-The dashboard automatically displays the current weekday, date, month and year.
-
-The greeting changes according to the system's current time:
-
-- Good morning
-- Good afternoon
-- Good evening
-- Good night
-
-## Important Academic Note
-
-SwitchSync is a software simulation. It does not directly control real household electrical appliances.
-
-Travel Mode, appliance controls, energy calculations and alerts are simulated using JavaScript and browser storage.
-
-A future version could connect the dashboard to authenticated IoT hardware APIs for real appliance monitoring and control.
+SwitchSync is a software simulation. It does not directly control real household electrical appliances or mains electricity.
