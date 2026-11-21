@@ -37,6 +37,13 @@ let speed = 1;
 let price = 8;
 let log = [];
 
+let tripPlan = {
+  departure: '',
+  returning: '',
+  note: '',
+  active: false
+};
+
 const $ = id => document.getElementById(id);
 
 const deviceById = id => devices.find(d => d.id === id);
@@ -48,22 +55,23 @@ function save() {
   localStorage.setItem('switchsync-devices', JSON.stringify(devices));
   localStorage.setItem('switchsync-log', JSON.stringify(log));
   localStorage.setItem('switchsync-mode', mode);
+  localStorage.setItem('switchsync-trip', JSON.stringify(tripPlan));
 }
 
 
-// 4. LOAD SAVED DATA
+// 4. LOAD DATA
 
 function load() {
   try {
-    const a = JSON.parse(localStorage.getItem('switchsync-devices'));
+    const savedDevices = JSON.parse(localStorage.getItem('switchsync-devices'));
 
-    if (Array.isArray(a)) {
-      a.forEach(x => {
-        const d = deviceById(x.id);
+    if (Array.isArray(savedDevices)) {
+      savedDevices.forEach(item => {
+        const device = deviceById(item.id);
 
-        if (d) {
-          d.on = !!x.on;
-          d.runtime = Number(x.runtime) || 0;
+        if (device) {
+          device.on = !!item.on;
+          device.runtime = Number(item.runtime) || 0;
         }
       });
     }
@@ -74,18 +82,26 @@ function load() {
   try {
     log = JSON.parse(localStorage.getItem('switchsync-log')) || [];
 
-    if (!Array.isArray(log)) {
-      log = [];
-    }
+    if (!Array.isArray(log)) log = [];
   } catch {
     log = [];
   }
 
   mode = localStorage.getItem('switchsync-mode') || 'home';
+
+  try {
+    const savedTrip = JSON.parse(localStorage.getItem('switchsync-trip'));
+
+    if (savedTrip && typeof savedTrip === 'object') {
+      tripPlan = { ...tripPlan, ...savedTrip };
+    }
+  } catch {
+    console.log('No saved trip found.');
+  }
 }
 
 
-// 5. AUTOMATIC GREETING AND DATE
+// 5. AUTOMATIC DATE AND GREETING
 
 function updateGreetingAndDate() {
   const now = new Date();
@@ -103,47 +119,38 @@ function updateGreetingAndDate() {
     greeting = 'Good night';
   }
 
-  const greetingElement = $('greeting');
-  const dateElement = $('currentDate');
+  $('greeting').textContent = greeting + ', Admin.';
 
-  if (greetingElement) {
-    greetingElement.textContent = greeting + ', Admin.';
-  }
-
-  if (dateElement) {
-    dateElement.textContent = now.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
+  $('currentDate').textContent = now.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
 }
 
 
-// 6. NOTIFICATION TOAST
+// 6. TOAST NOTIFICATION
 
-function toast(msg) {
-  const t = $('toast');
+function toast(message) {
+  const element = $('toast');
 
-  if (!t) return;
-
-  t.textContent = msg;
-  t.classList.add('show');
+  element.textContent = message;
+  element.classList.add('show');
 
   clearTimeout(window.toastTimer);
 
   window.toastTimer = setTimeout(() => {
-    t.classList.remove('show');
-  }, 2200);
+    element.classList.remove('show');
+  }, 2500);
 }
 
 
 // 7. ACTIVITY LOG
 
-function addLog(text) {
+function addLog(message) {
   log.unshift({
-    text,
+    text: message,
     time: new Date().toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
@@ -158,19 +165,22 @@ function addLog(text) {
 }
 
 
-// 8. APPLIANCE ON/OFF CONTROL
+// 8. APPLIANCE CONTROL
 
 function toggle(id, on) {
-  const d = deviceById(id);
+  const device = deviceById(id);
 
-  if (!d) return;
+  if (!device) return;
 
-  d.on = on;
-  d.runtime = on ? d.runtime : 0;
+  device.on = on;
 
-  addLog(`${d.name} turned ${on ? 'ON' : 'OFF'}`);
+  if (!on) {
+    device.runtime = 0;
+  }
 
-  toast(`${d.icon} ${d.name} is now ${on ? 'ON' : 'OFF'}`);
+  addLog(`${device.name} turned ${on ? 'ON' : 'OFF'}`);
+
+  toast(`${device.icon} ${device.name} is now ${on ? 'ON' : 'OFF'}`);
 
   render();
 }
@@ -179,144 +189,157 @@ function toggle(id, on) {
 // 9. ENERGY CALCULATION
 
 function energy() {
-  return devices.reduce(
-    (sum, d) => sum + (d.on ? d.watts / 1000 * (d.runtime / 3600) : 0),
-    0
-  );
+  return devices.reduce((sum, device) => {
+    return sum + (
+      device.on
+        ? device.watts / 1000 * (device.runtime / 3600)
+        : 0
+    );
+  }, 0);
 }
 
 
 // 10. SMART ALERTS
 
 function alerts() {
-  return devices.filter(
-    d => d.on && d.priority && d.runtime >= 1800
+  return devices.filter(device =>
+    device.on && device.priority && device.runtime >= 1800
   );
 }
 
 
-// 11. DEVICE FILTERING
+// 11. FILTERING
 
 function filtered() {
-  return devices.filter(
-    d => filter === 'all' || (filter === 'on' ? d.on : !d.on)
+  return devices.filter(device =>
+    filter === 'all' ||
+    (filter === 'on' ? device.on : !device.on)
   );
 }
 
 
-// 12. DIGITAL RUNTIME FORMAT
+// 12. RUNTIME FORMAT
 
-function formatRuntime(s) {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = Math.floor(s % 60);
+function formatRuntime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
 
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
 }
 
 
-// 13. APPLIANCE CARD
+// 13. DEVICE CARD
 
-function card(d) {
-  return `<article class="device-card ${d.on ? 'is-on' : ''}">
-    <div class="device-top">
-      <div class="device-icon">${d.icon}</div>
+function card(device) {
+  return `
+    <article class="device-card ${device.on ? 'is-on' : ''}">
+      <div class="device-top">
+        <div class="device-icon">${device.icon}</div>
 
-      <div class="status-dot ${d.on ? 'on' : ''}">
-        ${d.on ? '● ON' : '○ OFF'}
+        <div class="status-dot ${device.on ? 'on' : ''}">
+          ${device.on ? '● ON' : '○ OFF'}
+        </div>
       </div>
-    </div>
 
-    <h3>${d.name}</h3>
+      <h3>${device.name}</h3>
 
-    <p>${d.category} • ${d.watts} W</p>
+      <p>${device.category} • ${device.watts} W</p>
 
-    <div class="device-bottom">
-      <span class="watts">${d.on ? formatRuntime(d.runtime) : 'Standby'}</span>
+      <div class="device-bottom">
+        <span class="watts">
+          ${device.on ? formatRuntime(device.runtime) : 'Standby'}
+        </span>
 
-      <button class="toggle ${d.on ? 'on' : ''}"
-        data-toggle="${d.id}"
-        aria-label="Toggle ${d.name}">
-        <span></span>
-      </button>
-    </div>
-  </article>`;
+        <button class="toggle ${device.on ? 'on' : ''}"
+          data-toggle="${device.id}"
+          aria-label="Toggle ${device.name}">
+          <span></span>
+        </button>
+      </div>
+    </article>
+  `;
 }
 
 
-// 14. RENDER APPLIANCES
+// 14. RENDER DEVICES
 
 function renderDevices() {
-  const html = filtered().map(card).join('');
-
-  $('deviceGrid').innerHTML =
-    html || '<div class="empty">No devices match this filter.</div>';
+  $('deviceGrid').innerHTML = filtered().map(card).join('');
 
   $('allDeviceGrid').innerHTML = devices.map(card).join('');
 
-  document.querySelectorAll('[data-toggle]').forEach(b => {
-    b.onclick = () => {
-      const d = deviceById(b.dataset.toggle);
+  document.querySelectorAll('[data-toggle]').forEach(button => {
+    button.onclick = () => {
+      const device = deviceById(button.dataset.toggle);
 
-      if (d) {
-        toggle(d.id, !d.on);
+      if (device) {
+        toggle(device.id, !device.on);
       }
     };
   });
 }
 
 
-// 15. RENDER SMART ALERTS
+// 15. RENDER ALERTS
 
 function renderAlerts() {
-  const a = alerts();
+  const currentAlerts = alerts();
 
-  $('alertCount').textContent = a.length;
-  $('alertBadge').textContent = a.length;
-  $('alertLabel').textContent = a.length ? 'needs attention' : 'all clear';
+  $('alertCount').textContent = currentAlerts.length;
+  $('alertBadge').textContent = currentAlerts.length;
 
-  $('alerts').innerHTML = a.length
-    ? a.map(d => `<div class="alert-item">
-        <div class="alert-symbol">!</div>
+  $('alertLabel').textContent =
+    currentAlerts.length ? 'needs attention' : 'all clear';
 
-        <div>
-          <b>${d.name} has been ON for a long time</b>
-          <small>${formatRuntime(d.runtime)} • Consider switching it off.</small>
+  $('alerts').innerHTML = currentAlerts.length
+    ? currentAlerts.map(device => `
+        <div class="alert-item">
+          <div class="alert-symbol">!</div>
+          <div>
+            <b>${device.name} has been ON for a long time</b>
+            <small>${formatRuntime(device.runtime)} • Consider switching it off.</small>
+          </div>
         </div>
-      </div>`).join('')
+      `).join('')
     : '<div class="empty">✓ No critical appliance alerts.</div>';
 }
 
 
-// 16. RENDER ENERGY CENTER
+// 16. RENDER ENERGY
 
 function renderEnergy() {
-  const e = energy();
+  const totalEnergy = energy();
 
-  $('energyToday').textContent = e.toFixed(2) + ' kWh';
-  $('energyCost').textContent = '₹' + (e * price).toFixed(2);
+  $('energyToday').textContent = totalEnergy.toFixed(2) + ' kWh';
 
-  const max = Math.max(
-    ...devices.map(d =>
-      d.watts / 1000 * (Math.max(d.runtime, 900) / 3600)
+  $('energyCost').textContent =
+    '₹' + (totalEnergy * price).toFixed(2);
+
+  const maximum = Math.max(
+    ...devices.map(device =>
+      device.watts / 1000 * (Math.max(device.runtime, 900) / 3600)
     ),
     1
   );
 
   $('energyBar').style.width =
-    Math.min(100, e / (max * 5) * 100) + '%';
+    Math.min(100, totalEnergy / (maximum * 5) * 100) + '%';
 
-  $('energyRows').innerHTML = devices.map(d => {
-    const v = d.on ? d.watts / 1000 * (d.runtime / 3600) : 0;
+  $('energyRows').innerHTML = devices.map(device => {
+    const value = device.on
+      ? device.watts / 1000 * (device.runtime / 3600)
+      : 0;
 
-    return `<div class="energy-row">
-      <div>
-        <b>${d.icon} ${d.name}</b>
-        <small>${d.watts} W</small>
+    return `
+      <div class="energy-row">
+        <div>
+          <b>${device.icon} ${device.name}</b>
+          <small>${device.watts} W</small>
+        </div>
+        <b>${value.toFixed(3)} kWh</b>
       </div>
-
-      <b>${v.toFixed(3)} kWh</b>
-    </div>`;
+    `;
   }).join('');
 }
 
@@ -325,88 +348,220 @@ function renderEnergy() {
 
 function renderLog() {
   $('activityLog').innerHTML = log.length
-    ? log.map(x => `<div class="log-row">
-        <span>${x.text}</span>
-        <small>${x.time}</small>
-      </div>`).join('')
+    ? log.map(item => `
+        <div class="log-row">
+          <span>${item.text}</span>
+          <small>${item.time}</small>
+        </div>
+      `).join('')
     : '<div class="empty">No activity yet.</div>';
 }
 
 
-// 18. MAIN DASHBOARD RENDER
+// 18. TRAVEL MODE
+
+function saveTripPlan() {
+  const departure = $('departureDate').value;
+  const returning = $('returnDate').value;
+  const note = $('tripNote').value.trim();
+
+  if (!departure || !returning) {
+    toast('Please enter both travel dates.');
+    return false;
+  }
+
+  if (returning < departure) {
+    toast('Return date cannot be before departure.');
+    return false;
+  }
+
+  tripPlan.departure = departure;
+  tripPlan.returning = returning;
+  tripPlan.note = note;
+
+  save();
+  renderTravel();
+
+  toast('✈ Trip plan saved successfully.');
+
+  addLog('Travel plan saved');
+
+  return true;
+}
+
+
+function renderTravel() {
+  const onCount = devices.filter(device => device.on).length;
+  const offCount = devices.length - onCount;
+
+  $('travelMonitorOn').textContent = onCount;
+  $('travelMonitorOff').textContent = offCount;
+
+  $('travelMonitorStatus').textContent =
+    tripPlan.active ? 'Travel Mode Active' : 'At Home';
+
+  $('travelStatus').textContent =
+    tripPlan.active ? '✈ Travel Mode Active' :
+    tripPlan.departure ? 'Trip Planned' : 'No trip planned';
+
+  if (tripPlan.departure && tripPlan.returning) {
+    const start = new Date(tripPlan.departure + 'T00:00:00');
+    const end = new Date(tripPlan.returning + 'T00:00:00');
+
+    const days = Math.round((end - start) / 86400000) + 1;
+
+    $('tripDuration').textContent =
+      days + (days === 1 ? ' day' : ' days');
+  } else {
+    $('tripDuration').textContent = 'Not planned';
+  }
+
+  $('travelChecklist').innerHTML = devices.map(device => `
+    <div class="travel-check-row">
+      <div class="travel-check-device">
+        <div class="travel-check-icon">${device.icon}</div>
+        <div>
+          <strong>${device.name}</strong>
+          <div class="muted">${device.category} • ${device.watts} W</div>
+        </div>
+      </div>
+
+      <span class="check-state ${device.on ? 'on' : 'off'}">
+        ${device.on ? '● ON' : '✓ OFF'}
+      </span>
+    </div>
+  `).join('');
+
+  if (tripPlan.departure) {
+    $('departureDate').value = tripPlan.departure;
+    $('returnDate').value = tripPlan.returning;
+    $('tripNote').value = tripPlan.note || '';
+  }
+}
+
+
+function activateTravelMode() {
+  if (!tripPlan.departure || !tripPlan.returning) {
+    toast('Save your trip plan first.');
+    return;
+  }
+
+  tripPlan.active = true;
+  mode = 'away';
+
+  save();
+  render();
+
+  addLog('Travel Mode activated');
+
+  toast('✈ Travel Mode activated.');
+}
+
+
+function switchAllOffForTravel() {
+  devices.forEach(device => {
+    device.on = false;
+    device.runtime = 0;
+  });
+
+  mode = 'away';
+
+  save();
+  render();
+
+  addLog('All simulated appliances switched OFF for travel');
+
+  toast('✓ All simulated appliances are OFF.');
+}
+
+
+// 19. MAIN DASHBOARD RENDER
 
 function render() {
   updateGreetingAndDate();
 
-  const on = devices.filter(d => d.on).length;
+  const onCount = devices.filter(device => device.on).length;
 
   $('totalDevices').textContent = devices.length;
-  $('onDevices').textContent = on;
+  $('onDevices').textContent = onCount;
 
   $('onPercent').textContent =
-    Math.round(on / devices.length * 100) + '%';
+    Math.round(onCount / devices.length * 100) + '%';
 
   $('modeLabel').textContent =
     mode === 'home' ? 'At Home' : 'Away';
 
   $('modeSwitch').classList.toggle('away', mode === 'away');
 
+  if ($('profileMode')) {
+    $('profileMode').textContent =
+      mode === 'home' ? 'At Home' : 'Away';
+  }
+
   renderDevices();
   renderAlerts();
   renderEnergy();
   renderLog();
+  renderTravel();
 
   save();
 }
 
 
-// 19. PAGE NAVIGATION
+// 20. PAGE NAVIGATION
 
 function showView(name) {
-  document.querySelectorAll('.view-panel,#dashboardView').forEach(x => {
-    x.classList.add('hidden');
+  document.querySelectorAll('.view-panel, #dashboardView').forEach(view => {
+    view.classList.add('hidden');
   });
 
-  $(name === 'dashboard' ? 'dashboardView' : name + 'View')
-    .classList.remove('hidden');
+  const selectedView = $(name === 'dashboard' ? 'dashboardView' : name + 'View');
 
-  document.querySelectorAll('.nav-item[data-view]').forEach(x => {
-    x.classList.toggle('active', x.dataset.view === name);
+  if (selectedView) {
+    selectedView.classList.remove('hidden');
+  }
+
+  document.querySelectorAll('.nav-item[data-view]').forEach(button => {
+    button.classList.toggle('active', button.dataset.view === name);
   });
 
   $('pageTitle').textContent =
-    name[0].toUpperCase() + name.slice(1);
+    name.charAt(0).toUpperCase() + name.slice(1);
+
+  if (name === 'travel') {
+    renderTravel();
+  }
 }
 
 
-// 20. NAVIGATION BUTTONS
+// 21. NAVIGATION BUTTONS
 
-document.querySelectorAll('.nav-item[data-view]').forEach(b => {
-  b.onclick = () => {
-    showView(b.dataset.view);
+document.querySelectorAll('.nav-item[data-view]').forEach(button => {
+  button.onclick = () => {
+    showView(button.dataset.view);
     $('sidebar').classList.remove('open');
   };
 });
 
 
-// 21. FILTER BUTTONS
+// 22. FILTER BUTTONS
 
-document.querySelectorAll('.filter').forEach(b => {
-  b.onclick = () => {
-    filter = b.dataset.filter;
+document.querySelectorAll('.filter').forEach(button => {
+  button.onclick = () => {
+    filter = button.dataset.filter;
 
-    document.querySelectorAll('.filter').forEach(x => {
-      x.classList.remove('active');
+    document.querySelectorAll('.filter').forEach(item => {
+      item.classList.remove('active');
     });
 
-    b.classList.add('active');
+    button.classList.add('active');
 
     renderDevices();
   };
 });
 
 
-// 22. HOME AND AWAY MODE
+// 23. HOME AND AWAY MODE
 
 $('modeSwitch').onclick = () => {
   mode = mode === 'home' ? 'away' : 'home';
@@ -414,14 +569,15 @@ $('modeSwitch').onclick = () => {
   addLog(`Home mode changed to ${mode === 'home' ? 'At Home' : 'Away'}`);
 
   if (mode === 'away') {
-    const activeDevices = devices.filter(d => d.on);
+    const activeDevices = devices.filter(device => device.on);
 
     toast(
       activeDevices.length
         ? `⚠️ ${activeDevices.length} appliances are still ON`
-        : '✈️ Away Mode enabled — all appliances are OFF'
+        : '✈ Away Mode enabled — all appliances are OFF'
     );
   } else {
+    tripPlan.active = false;
     toast('🏠 At Home mode enabled');
   }
 
@@ -429,12 +585,12 @@ $('modeSwitch').onclick = () => {
 };
 
 
-// 23. TURN EVERYTHING OFF
+// 24. TURN EVERYTHING OFF
 
 $('allOff').onclick = () => {
-  devices.forEach(d => {
-    d.on = false;
-    d.runtime = 0;
+  devices.forEach(device => {
+    device.on = false;
+    device.runtime = 0;
   });
 
   addLog('All appliances switched OFF');
@@ -445,11 +601,11 @@ $('allOff').onclick = () => {
 };
 
 
-// 24. TURN EVERYTHING ON
+// 25. TURN EVERYTHING ON
 
 $('allOn').onclick = () => {
-  devices.forEach(d => {
-    d.on = true;
+  devices.forEach(device => {
+    device.on = true;
   });
 
   addLog('All appliances switched ON');
@@ -460,7 +616,7 @@ $('allOn').onclick = () => {
 };
 
 
-// 25. REFRESH SIMULATION
+// 26. REFRESH SIMULATION
 
 $('refreshBtn').onclick = () => {
   render();
@@ -468,12 +624,12 @@ $('refreshBtn').onclick = () => {
 };
 
 
-// 26. SIMULATE HOUSEHOLD ACTIVITY
+// 27. SIMULATE HOUSEHOLD ACTIVITY
 
 $('randomBtn').onclick = () => {
-  devices.forEach(d => {
+  devices.forEach(device => {
     if (Math.random() < 0.28) {
-      d.on = !d.on;
+      device.on = !device.on;
     }
   });
 
@@ -485,7 +641,7 @@ $('randomBtn').onclick = () => {
 };
 
 
-// 27. CLEAR ACTIVITY LOG
+// 28. CLEAR ACTIVITY LOG
 
 $('clearLog').onclick = () => {
   log = [];
@@ -497,32 +653,30 @@ $('clearLog').onclick = () => {
 };
 
 
-// 28. ELECTRICITY PRICE SETTING
+// 29. ELECTRICITY PRICE
 
-$('priceInput').oninput = e => {
-  price = Number(e.target.value) || 8;
-
+$('priceInput').oninput = event => {
+  price = Number(event.target.value) || 8;
   renderEnergy();
 };
 
 
-// 29. SIMULATION SPEED SETTING
+// 30. SIMULATION SPEED
 
-$('speedSelect').onchange = e => {
-  speed = Number(e.target.value);
-
+$('speedSelect').onchange = event => {
+  speed = Number(event.target.value);
   toast('Simulation speed updated');
 };
 
 
-// 30. MOBILE MENU
+// 31. MOBILE MENU
 
 $('mobileMenu').onclick = () => {
   $('sidebar').classList.toggle('open');
 };
 
 
-// 31. DARK / LIGHT MODE
+// 32. DARK AND LIGHT MODE
 
 const savedTheme = localStorage.getItem('switchsync-theme');
 
@@ -545,64 +699,65 @@ $('themeBtn').onclick = () => {
 };
 
 
-// 32. ADMIN PROFILE
+// 33. ADMIN PROFILE
 
-const profileBtn = $('profileBtn');
 const profileOverlay = $('profileOverlay');
-const profileClose = $('profileClose');
-const profileDone = $('profileDone');
 
 function openProfile() {
-  if (!profileOverlay) return;
-
   profileOverlay.classList.add('show');
 
-  const modeText = mode === 'home' ? 'At Home' : 'Away';
-
-  if ($('profileMode')) {
-    $('profileMode').textContent = modeText;
-  }
+  $('profileMode').textContent =
+    mode === 'home' ? 'At Home' : 'Away';
 }
 
 function closeProfile() {
-  if (profileOverlay) {
-    profileOverlay.classList.remove('show');
+  profileOverlay.classList.remove('show');
+}
+
+$('profileBtn').onclick = openProfile;
+$('profileClose').onclick = closeProfile;
+$('profileDone').onclick = closeProfile;
+
+profileOverlay.onclick = event => {
+  if (event.target === profileOverlay) {
+    closeProfile();
   }
-}
-
-if (profileBtn) {
-  profileBtn.onclick = openProfile;
-}
-
-if (profileClose) {
-  profileClose.onclick = closeProfile;
-}
-
-if (profileDone) {
-  profileDone.onclick = closeProfile;
-}
-
-if (profileOverlay) {
-  profileOverlay.onclick = event => {
-    if (event.target === profileOverlay) {
-      closeProfile();
-    }
-  };
-}
+};
 
 
-// 33. INITIALIZE WEBSITE
+// 34. TRAVEL MODE BUTTONS
+
+$('saveTrip').onclick = saveTripPlan;
+
+$('activateTravel').onclick = activateTravelMode;
+
+$('travelAllOff').onclick = switchAllOffForTravel;
+
+$('refreshChecklist').onclick = () => {
+  renderTravel();
+  toast('Travel checklist refreshed.');
+};
+
+
+// 35. INITIALIZE WEBSITE
 
 load();
+
+if (tripPlan.departure) {
+  $('departureDate').value = tripPlan.departure;
+  $('returnDate').value = tripPlan.returning;
+  $('tripNote').value = tripPlan.note || '';
+}
+
 render();
 
 
-// 34. APPLIANCE RUNTIME TIMER
+// 36. AUTOMATIC RUNTIME AND DATE UPDATES
 
 setInterval(() => {
-  devices.forEach(d => {
-    if (d.on) {
-      d.runtime += speed;
+  devices.forEach(device => {
+    if (device.on) {
+      device.runtime += speed;
     }
   });
 
