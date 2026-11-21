@@ -28,7 +28,6 @@ const devices = [
   {id:'air-purifier',name:'Air Purifier',icon:'🌬️',category:'Climate',watts:50,on:false,runtime:0,priority:false}
 ];
 
-
 // 2. GLOBAL VARIABLES
 
 let mode = 'home';
@@ -38,16 +37,14 @@ let price = 8;
 let log = [];
 
 let tripPlan = {
-  departure: '',
-  returning: '',
-  note: '',
-  active: false
+  departure:'',
+  returning:'',
+  note:'',
+  active:false
 };
 
 const $ = id => document.getElementById(id);
-
 const deviceById = id => devices.find(d => d.id === id);
-
 
 // 3. SAVE DATA
 
@@ -58,7 +55,6 @@ function save() {
   localStorage.setItem('switchsync-trip', JSON.stringify(tripPlan));
 }
 
-
 // 4. LOAD DATA
 
 function load() {
@@ -68,7 +64,6 @@ function load() {
     if (Array.isArray(savedDevices)) {
       savedDevices.forEach(item => {
         const device = deviceById(item.id);
-
         if (device) {
           device.on = !!item.on;
           device.runtime = Number(item.runtime) || 0;
@@ -80,9 +75,8 @@ function load() {
   }
 
   try {
-    log = JSON.parse(localStorage.getItem('switchsync-log')) || [];
-
-    if (!Array.isArray(log)) log = [];
+    const savedLog = JSON.parse(localStorage.getItem('switchsync-log'));
+    log = Array.isArray(savedLog) ? savedLog : [];
   } catch {
     log = [];
   }
@@ -91,7 +85,6 @@ function load() {
 
   try {
     const savedTrip = JSON.parse(localStorage.getItem('switchsync-trip'));
-
     if (savedTrip && typeof savedTrip === 'object') {
       tripPlan = { ...tripPlan, ...savedTrip };
     }
@@ -100,160 +93,125 @@ function load() {
   }
 }
 
-
-// 5. AUTOMATIC DATE AND GREETING
+// 5. GREETING AND DATE
 
 function updateGreetingAndDate() {
   const now = new Date();
   const hour = now.getHours();
 
-  let greeting;
+  let greeting = 'Good night';
 
-  if (hour >= 5 && hour < 12) {
-    greeting = 'Good morning';
-  } else if (hour >= 12 && hour < 17) {
-    greeting = 'Good afternoon';
-  } else if (hour >= 17 && hour < 21) {
-    greeting = 'Good evening';
-  } else {
-    greeting = 'Good night';
-  }
+  if (hour >= 5 && hour < 12) greeting = 'Good morning';
+  else if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+  else if (hour >= 17 && hour < 21) greeting = 'Good evening';
 
-  $('greeting').textContent = greeting + ', Admin.';
+  $('greeting').innerHTML = greeting + ', <span>Admin.</span> 👋';
 
   $('currentDate').textContent = now.toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+    weekday:'long',
+    month:'long',
+    day:'numeric',
+    year:'numeric'
+  }).toUpperCase();
 }
 
+// 6. TOAST
 
-// 6. TOAST NOTIFICATION
+let toastTimer;
 
 function toast(message) {
   const element = $('toast');
-
   element.textContent = message;
   element.classList.add('show');
 
-  clearTimeout(window.toastTimer);
+  clearTimeout(toastTimer);
 
-  window.toastTimer = setTimeout(() => {
+  toastTimer = setTimeout(() => {
     element.classList.remove('show');
   }, 2500);
 }
-
 
 // 7. ACTIVITY LOG
 
 function addLog(message) {
   log.unshift({
-    text: message,
-    time: new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    text:message,
+    time:new Date().toLocaleTimeString([], {
+      hour:'2-digit',
+      minute:'2-digit',
+      second:'2-digit'
     })
   });
 
-  log = log.slice(0, 60);
-
+  log = log.slice(0,60);
   save();
   renderLog();
 }
-
 
 // 8. APPLIANCE CONTROL
 
 function toggle(id, on) {
   const device = deviceById(id);
-
   if (!device) return;
 
   device.on = on;
-
-  if (!on) {
-    device.runtime = 0;
-  }
+  if (!on) device.runtime = 0;
 
   addLog(`${device.name} turned ${on ? 'ON' : 'OFF'}`);
-
   toast(`${device.icon} ${device.name} is now ${on ? 'ON' : 'OFF'}`);
 
   render();
 }
 
-
-// 9. ENERGY CALCULATION
+// 9. ENERGY
 
 function energy() {
-  return devices.reduce((sum, device) => {
-    return sum + (
-      device.on
-        ? device.watts / 1000 * (device.runtime / 3600)
-        : 0
-    );
-  }, 0);
+  return devices.reduce((sum,d) =>
+    sum + (d.on ? d.watts / 1000 * (d.runtime / 3600) : 0), 0);
 }
 
-
-// 10. SMART ALERTS
+// 10. ALERTS
 
 function alerts() {
-  return devices.filter(device =>
-    device.on && device.priority && device.runtime >= 1800
-  );
+  return devices.filter(d => d.on && d.priority && d.runtime >= 1800);
 }
-
 
 // 11. FILTERING
 
 function filtered() {
-  return devices.filter(device =>
-    filter === 'all' ||
-    (filter === 'on' ? device.on : !device.on)
+  return devices.filter(d =>
+    filter === 'all' || (filter === 'on' ? d.on : !d.on)
   );
 }
-
 
 // 12. RUNTIME FORMAT
 
 function formatRuntime(seconds) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
 
-  return `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
+// 13. APPLIANCE CARD
 
-// 13. DEVICE CARD
-
-function card(device) {
+function card(d) {
   return `
-    <article class="device-card ${device.on ? 'is-on' : ''}">
+    <article class="device-card">
       <div class="device-top">
-        <div class="device-icon">${device.icon}</div>
-
-        <div class="status-dot ${device.on ? 'on' : ''}">
-          ${device.on ? '● ON' : '○ OFF'}
+        <div class="device-icon">${d.icon}</div>
+        <div class="status-dot ${d.on ? 'on' : ''}">
+          ${d.on ? '● ON' : '○ OFF'}
         </div>
       </div>
 
-      <h3>${device.name}</h3>
-
-      <p>${device.category} • ${device.watts} W</p>
+      <h3>${d.name}</h3>
+      <p>${d.category} • ${d.watts} W</p>
 
       <div class="device-bottom">
-        <span class="watts">
-          ${device.on ? formatRuntime(device.runtime) : 'Standby'}
-        </span>
-
-        <button class="toggle ${device.on ? 'on' : ''}"
-          data-toggle="${device.id}"
-          aria-label="Toggle ${device.name}">
+        <span class="watts">${d.on ? formatRuntime(d.runtime) : 'Standby'}</span>
+        <button class="toggle ${d.on ? 'on' : ''}" data-toggle="${d.id}">
           <span></span>
         </button>
       </div>
@@ -261,153 +219,102 @@ function card(device) {
   `;
 }
 
-
 // 14. RENDER DEVICES
 
 function renderDevices() {
   $('deviceGrid').innerHTML = filtered().map(card).join('');
-
   $('allDeviceGrid').innerHTML = devices.map(card).join('');
 
   document.querySelectorAll('[data-toggle]').forEach(button => {
     button.onclick = () => {
       const device = deviceById(button.dataset.toggle);
-
-      if (device) {
-        toggle(device.id, !device.on);
-      }
+      if (device) toggle(device.id, !device.on);
     };
   });
 }
 
-
 // 15. RENDER ALERTS
 
 function renderAlerts() {
-  const currentAlerts = alerts();
+  const list = alerts();
 
-  $('alertCount').textContent = currentAlerts.length;
-  $('alertBadge').textContent = currentAlerts.length;
+  $('alertCount').textContent = list.length;
+  $('alertBadge').textContent = list.length;
+  $('alertLabel').textContent = list.length ? 'needs attention' : 'all clear';
 
-  $('alertLabel').textContent =
-    currentAlerts.length ? 'needs attention' : 'all clear';
-
-  $('alerts').innerHTML = currentAlerts.length
-    ? currentAlerts.map(device => `
-        <div class="alert-item">
-          <div class="alert-symbol">!</div>
-          <div>
-            <b>${device.name} has been ON for a long time</b>
-            <small>${formatRuntime(device.runtime)} • Consider switching it off.</small>
-          </div>
+  $('alerts').innerHTML = list.length
+    ? list.map(d => `
+      <div class="alert-item">
+        <div class="alert-symbol">!</div>
+        <div>
+          <b>${d.name} has been ON for a long time</b>
+          <small>${formatRuntime(d.runtime)} • Consider switching it off.</small>
         </div>
-      `).join('')
+      </div>
+    `).join('')
     : '<div class="empty">✓ No critical appliance alerts.</div>';
 }
-
 
 // 16. RENDER ENERGY
 
 function renderEnergy() {
-  const totalEnergy = energy();
+  const total = energy();
 
-  $('energyToday').textContent = totalEnergy.toFixed(2) + ' kWh';
+  $('energyToday').textContent = total.toFixed(3) + ' kWh';
+  $('energyCost').textContent = '₹' + (total * price).toFixed(2);
 
-  $('energyCost').textContent =
-    '₹' + (totalEnergy * price).toFixed(2);
-
-  const maximum = Math.max(
-    ...devices.map(device =>
-      device.watts / 1000 * (Math.max(device.runtime, 900) / 3600)
-    ),
+  const max = Math.max(
+    ...devices.map(d => d.watts / 1000 * (Math.max(d.runtime,900) / 3600)),
     1
   );
 
   $('energyBar').style.width =
-    Math.min(100, totalEnergy / (maximum * 5) * 100) + '%';
+    Math.min(100,total / (max * 5) * 100) + '%';
 
-  $('energyRows').innerHTML = devices.map(device => {
-    const value = device.on
-      ? device.watts / 1000 * (device.runtime / 3600)
-      : 0;
+  $('energyRows').innerHTML = devices.map(d => {
+    const value = d.on ? d.watts / 1000 * (d.runtime / 3600) : 0;
 
     return `
       <div class="energy-row">
-        <div>
-          <b>${device.icon} ${device.name}</b>
-          <small>${device.watts} W</small>
-        </div>
+        <div><b>${d.icon} ${d.name}</b><br><small>${d.watts} W</small></div>
         <b>${value.toFixed(3)} kWh</b>
       </div>
     `;
   }).join('');
 }
 
-
-// 17. RENDER ACTIVITY LOG
+// 17. ACTIVITY LOG DISPLAY
 
 function renderLog() {
   $('activityLog').innerHTML = log.length
     ? log.map(item => `
-        <div class="log-row">
-          <span>${item.text}</span>
-          <small>${item.time}</small>
-        </div>
-      `).join('')
+      <div class="log-row">
+        <span>${item.text}</span>
+        <small>${item.time}</small>
+      </div>
+    `).join('')
     : '<div class="empty">No activity yet.</div>';
 }
 
-
-// 18. TRAVEL MODE
-
-function saveTripPlan() {
-  const departure = $('departureDate').value;
-  const returning = $('returnDate').value;
-  const note = $('tripNote').value.trim();
-
-  if (!departure || !returning) {
-    toast('Please enter both travel dates.');
-    return false;
-  }
-
-  if (returning < departure) {
-    toast('Return date cannot be before departure.');
-    return false;
-  }
-
-  tripPlan.departure = departure;
-  tripPlan.returning = returning;
-  tripPlan.note = note;
-
-  save();
-  renderTravel();
-
-  toast('✈ Trip plan saved successfully.');
-
-  addLog('Travel plan saved');
-
-  return true;
-}
-
+// 18. TRAVEL MODE DISPLAY
 
 function renderTravel() {
-  const onCount = devices.filter(device => device.on).length;
+  const onCount = devices.filter(d => d.on).length;
   const offCount = devices.length - onCount;
 
   $('travelMonitorOn').textContent = onCount;
   $('travelMonitorOff').textContent = offCount;
 
+  $('travelStatus').textContent =
+    tripPlan.active ? 'Travel Mode Active' :
+    tripPlan.departure ? 'Trip Planned' : 'No trip planned';
+
   $('travelMonitorStatus').textContent =
     tripPlan.active ? 'Travel Mode Active' : 'At Home';
-
-  $('travelStatus').textContent =
-    tripPlan.active ? '✈ Travel Mode Active' :
-    tripPlan.departure ? 'Trip Planned' : 'No trip planned';
 
   if (tripPlan.departure && tripPlan.returning) {
     const start = new Date(tripPlan.departure + 'T00:00:00');
     const end = new Date(tripPlan.returning + 'T00:00:00');
-
     const days = Math.round((end - start) / 86400000) + 1;
 
     $('tripDuration').textContent =
@@ -416,86 +323,39 @@ function renderTravel() {
     $('tripDuration').textContent = 'Not planned';
   }
 
-  $('travelChecklist').innerHTML = devices.map(device => `
+  $('travelChecklist').innerHTML = devices.map(d => `
     <div class="travel-check-row">
       <div class="travel-check-device">
-        <div class="travel-check-icon">${device.icon}</div>
+        <div class="travel-check-icon">${d.icon}</div>
         <div>
-          <strong>${device.name}</strong>
-          <div class="muted">${device.category} • ${device.watts} W</div>
+          <strong>${d.name}</strong>
+          <div class="muted">${d.category} • ${d.watts} W</div>
         </div>
       </div>
-
-      <span class="check-state ${device.on ? 'on' : 'off'}">
-        ${device.on ? '● ON' : '✓ OFF'}
+      <span class="check-state ${d.on ? 'on' : 'off'}">
+        ${d.on ? '● ON' : '✓ OFF'}
       </span>
     </div>
   `).join('');
-
-  if (tripPlan.departure) {
-    $('departureDate').value = tripPlan.departure;
-    $('returnDate').value = tripPlan.returning;
-    $('tripNote').value = tripPlan.note || '';
-  }
 }
 
-
-function activateTravelMode() {
-  if (!tripPlan.departure || !tripPlan.returning) {
-    toast('Save your trip plan first.');
-    return;
-  }
-
-  tripPlan.active = true;
-  mode = 'away';
-
-  save();
-  render();
-
-  addLog('Travel Mode activated');
-
-  toast('✈ Travel Mode activated.');
-}
-
-
-function switchAllOffForTravel() {
-  devices.forEach(device => {
-    device.on = false;
-    device.runtime = 0;
-  });
-
-  mode = 'away';
-
-  save();
-  render();
-
-  addLog('All simulated appliances switched OFF for travel');
-
-  toast('✓ All simulated appliances are OFF.');
-}
-
-
-// 19. MAIN DASHBOARD RENDER
+// 19. MAIN RENDER
 
 function render() {
   updateGreetingAndDate();
 
-  const onCount = devices.filter(device => device.on).length;
+  const onCount = devices.filter(d => d.on).length;
 
   $('totalDevices').textContent = devices.length;
   $('onDevices').textContent = onCount;
-
   $('onPercent').textContent =
     Math.round(onCount / devices.length * 100) + '%';
 
-  $('modeLabel').textContent =
-    mode === 'home' ? 'At Home' : 'Away';
-
-  $('modeSwitch').classList.toggle('away', mode === 'away');
+  $('modeLabel').textContent = mode === 'home' ? 'At Home' : 'Away';
+  $('modeSwitch').classList.toggle('away',mode === 'away');
 
   if ($('profileMode')) {
-    $('profileMode').textContent =
-      mode === 'home' ? 'At Home' : 'Away';
+    $('profileMode').textContent = mode === 'home' ? 'At Home' : 'Away';
   }
 
   renderDevices();
@@ -507,42 +367,32 @@ function render() {
   save();
 }
 
-
 // 20. PAGE NAVIGATION
 
 function showView(name) {
-  document.querySelectorAll('.view-panel, #dashboardView').forEach(view => {
+  document.querySelectorAll('.view-panel,#dashboardView').forEach(view => {
     view.classList.add('hidden');
   });
 
-  const selectedView = $(name === 'dashboard' ? 'dashboardView' : name + 'View');
+  const target = $(name === 'dashboard' ? 'dashboardView' : name + 'View');
 
-  if (selectedView) {
-    selectedView.classList.remove('hidden');
-  }
+  if (target) target.classList.remove('hidden');
 
   document.querySelectorAll('.nav-item[data-view]').forEach(button => {
-    button.classList.toggle('active', button.dataset.view === name);
+    button.classList.toggle('active',button.dataset.view === name);
   });
 
   $('pageTitle').textContent =
     name.charAt(0).toUpperCase() + name.slice(1);
 
-  if (name === 'travel') {
-    renderTravel();
-  }
+  $('sidebar').classList.remove('open');
 }
-
 
 // 21. NAVIGATION BUTTONS
 
 document.querySelectorAll('.nav-item[data-view]').forEach(button => {
-  button.onclick = () => {
-    showView(button.dataset.view);
-    $('sidebar').classList.remove('open');
-  };
+  button.onclick = () => showView(button.dataset.view);
 });
-
 
 // 22. FILTER BUTTONS
 
@@ -550,124 +400,93 @@ document.querySelectorAll('.filter').forEach(button => {
   button.onclick = () => {
     filter = button.dataset.filter;
 
-    document.querySelectorAll('.filter').forEach(item => {
-      item.classList.remove('active');
-    });
+    document.querySelectorAll('.filter').forEach(item =>
+      item.classList.remove('active')
+    );
 
     button.classList.add('active');
-
     renderDevices();
   };
 });
 
-
-// 23. HOME AND AWAY MODE
+// 23. HOME / AWAY MODE
 
 $('modeSwitch').onclick = () => {
   mode = mode === 'home' ? 'away' : 'home';
 
   addLog(`Home mode changed to ${mode === 'home' ? 'At Home' : 'Away'}`);
 
-  if (mode === 'away') {
-    const activeDevices = devices.filter(device => device.on);
-
-    toast(
-      activeDevices.length
-        ? `⚠️ ${activeDevices.length} appliances are still ON`
-        : '✈ Away Mode enabled — all appliances are OFF'
-    );
-  } else {
-    tripPlan.active = false;
-    toast('🏠 At Home mode enabled');
-  }
+  toast(mode === 'home' ? '🏠 At Home mode enabled' : '✈ Away Mode enabled');
 
   render();
 };
-
 
 // 24. TURN EVERYTHING OFF
 
-$('allOff').onclick = () => {
-  devices.forEach(device => {
-    device.on = false;
-    device.runtime = 0;
+function switchEverythingOff() {
+  devices.forEach(d => {
+    d.on = false;
+    d.runtime = 0;
   });
 
   addLog('All appliances switched OFF');
-
-  toast('⏻ All appliances switched OFF');
-
   render();
-};
+  toast('⏻ All appliances switched OFF');
+}
 
+$('allOff').onclick = switchEverythingOff;
 
 // 25. TURN EVERYTHING ON
 
 $('allOn').onclick = () => {
-  devices.forEach(device => {
-    device.on = true;
-  });
+  devices.forEach(d => d.on = true);
 
   addLog('All appliances switched ON');
-
-  toast('◉ All appliances switched ON');
-
   render();
+  toast('All appliances switched ON');
 };
 
-
-// 26. REFRESH SIMULATION
+// 26. REFRESH
 
 $('refreshBtn').onclick = () => {
   render();
-  toast('↻ Dashboard refreshed');
+  toast('Dashboard refreshed');
 };
 
-
-// 27. SIMULATE HOUSEHOLD ACTIVITY
+// 27. SIMULATE ACTIVITY
 
 $('randomBtn').onclick = () => {
-  devices.forEach(device => {
-    if (Math.random() < 0.28) {
-      device.on = !device.on;
-    }
+  devices.forEach(d => {
+    if (Math.random() < 0.28) d.on = !d.on;
   });
 
   addLog('Simulated household activity');
-
-  toast('✦ Simulated appliance activity');
-
   render();
+  toast('Simulated appliance activity');
 };
 
-
-// 28. CLEAR ACTIVITY LOG
+// 28. CLEAR LOG
 
 $('clearLog').onclick = () => {
   log = [];
-
   save();
   renderLog();
-
   toast('Activity log cleared');
 };
 
-
-// 29. ELECTRICITY PRICE
+// 29. ENERGY PRICE
 
 $('priceInput').oninput = event => {
   price = Number(event.target.value) || 8;
   renderEnergy();
 };
 
-
 // 30. SIMULATION SPEED
 
 $('speedSelect').onchange = event => {
-  speed = Number(event.target.value);
+  speed = Number(event.target.value) || 1;
   toast('Simulation speed updated');
 };
-
 
 // 31. MOBILE MENU
 
@@ -675,12 +494,9 @@ $('mobileMenu').onclick = () => {
   $('sidebar').classList.toggle('open');
 };
 
+// 32. DARK / LIGHT THEME
 
-// 32. DARK AND LIGHT MODE
-
-const savedTheme = localStorage.getItem('switchsync-theme');
-
-if (savedTheme === 'light') {
+if (localStorage.getItem('switchsync-theme') === 'light') {
   document.body.classList.add('light');
   $('themeBtn').textContent = '☾';
 }
@@ -688,58 +504,107 @@ if (savedTheme === 'light') {
 $('themeBtn').onclick = () => {
   document.body.classList.toggle('light');
 
-  const isLight = document.body.classList.contains('light');
+  const light = document.body.classList.contains('light');
 
-  localStorage.setItem(
-    'switchsync-theme',
-    isLight ? 'light' : 'dark'
-  );
-
-  $('themeBtn').textContent = isLight ? '☾' : '☼';
+  localStorage.setItem('switchsync-theme',light ? 'light' : 'dark');
+  $('themeBtn').textContent = light ? '☾' : '☼';
 };
-
 
 // 33. ADMIN PROFILE
 
-const profileOverlay = $('profileOverlay');
-
-function openProfile() {
-  profileOverlay.classList.add('show');
-
-  $('profileMode').textContent =
-    mode === 'home' ? 'At Home' : 'Away';
-}
-
 function closeProfile() {
-  profileOverlay.classList.remove('show');
+  $('profileOverlay').classList.remove('show');
 }
 
-$('profileBtn').onclick = openProfile;
+$('profileBtn').onclick = () => {
+  $('profileOverlay').classList.add('show');
+  $('profileMode').textContent = mode === 'home' ? 'At Home' : 'Away';
+};
+
 $('profileClose').onclick = closeProfile;
 $('profileDone').onclick = closeProfile;
 
-profileOverlay.onclick = event => {
-  if (event.target === profileOverlay) {
-    closeProfile();
-  }
+$('profileOverlay').onclick = event => {
+  if (event.target === $('profileOverlay')) closeProfile();
 };
 
+// 34. TRAVEL MODE: SAVE TRIP PLAN
 
-// 34. TRAVEL MODE BUTTONS
+function saveTripPlan() {
+  const departure = $('departureDate').value;
+  const returning = $('returnDate').value;
+  const note = $('tripNote').value.trim();
+
+  if (!departure || !returning) {
+    toast('Please select both travel dates.');
+    return;
+  }
+
+  if (returning < departure) {
+    toast('Return date cannot be before departure.');
+    return;
+  }
+
+  tripPlan.departure = departure;
+  tripPlan.returning = returning;
+  tripPlan.note = note;
+
+  tripPlan.active = false;
+
+  save();
+  renderTravel();
+  addLog('Travel plan saved');
+
+  toast('Trip plan saved successfully!');
+}
+
+// 35. TRAVEL MODE: ACTIVATE
+
+function activateTravelMode() {
+  if (!tripPlan.departure || !tripPlan.returning) {
+    toast('Please save your trip plan first.');
+    return;
+  }
+
+  tripPlan.active = true;
+  mode = 'away';
+
+  save();
+  render();
+  addLog('Travel Mode activated');
+
+  toast('✈ Travel Mode activated!');
+}
+
+// 36. TRAVEL MODE: SWITCH ALL APPLIANCES OFF
+
+function switchAllOffForTravel() {
+  devices.forEach(d => {
+    d.on = false;
+    d.runtime = 0;
+  });
+
+  mode = 'away';
+
+  save();
+  render();
+  addLog('All appliances switched OFF for travel');
+
+  toast('All simulated appliances are OFF!');
+}
+
+// 37. TRAVEL MODE BUTTON CONNECTIONS
 
 $('saveTrip').onclick = saveTripPlan;
-
 $('activateTravel').onclick = activateTravelMode;
-
 $('travelAllOff').onclick = switchAllOffForTravel;
 
 $('refreshChecklist').onclick = () => {
   renderTravel();
-  toast('Travel checklist refreshed.');
+  toast('Travel checklist refreshed!');
 };
 
-
-// 35. INITIALIZE WEBSITE
+// 38. START WEBSITE
 
 load();
 
@@ -751,15 +616,12 @@ if (tripPlan.departure) {
 
 render();
 
-
-// 36. AUTOMATIC RUNTIME AND DATE UPDATES
+// 39. APPLIANCE RUNTIME TIMER
 
 setInterval(() => {
-  devices.forEach(device => {
-    if (device.on) {
-      device.runtime += speed;
-    }
+  devices.forEach(d => {
+    if (d.on) d.runtime += speed;
   });
 
   render();
-}, 1000);
+},1000);
