@@ -1,145 +1,360 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#07111f">
   <title>SwitchSync — Smart Home Control</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <button class="avatar" id="profileBtn" title="Open Admin Profile">
-  A
-</button>
-        <div><strong>SwitchSync</strong><span>Smart Home OS</span></div>
-      </div>
-      <nav>
-        <button class="nav-item active" data-view="dashboard">⌂ <span>Dashboard</span></button>
-        <button class="nav-item" data-view="devices">◈ <span>All Devices</span></button>
-        <button class="nav-item" data-view="energy">◒ <span>Energy</span></button>
-        <button class="nav-item" data-view="activity">◷ <span>Activity</span></button>
-      </nav>
-      <div class="sidebar-bottom">
-        <div class="system-card"><span class="pulse"></span><div><b>Simulation online</b><small>Local prototype</small></div></div>
-        <button class="nav-item" data-view="settings">⚙ <span>Settings</span></button>
-      </div>
-    </aside>
 
-    <main class="main">
-      <header class="topbar">
-        <button class="mobile-menu" id="mobileMenu">☰</button>
-        <div class="crumb"><span>Home</span><b>/</b><strong id="pageTitle">Dashboard</strong></div>
-        <div class="top-actions">
-          <div class="live-pill"><i></i> LIVE SIMULATION</div>
-          <button class="icon-btn" id="themeBtn" title="Toggle theme">☼</button>
-          <div class="avatar">A</div>
+<div class="app-shell">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <button class="avatar" id="profileBtn">A</button>
+      <div>
+        <strong>SwitchSync</strong>
+        <span>Smart Home OS</span>
+      </div>
+    </div>
+
+    <nav>
+      <button class="nav-item active" data-view="dashboard">⌂ <span>Dashboard</span></button>
+      <button class="nav-item" data-view="devices">◈ <span>All Devices</span></button>
+      <button class="nav-item" data-view="energy">◒ <span>Energy</span></button>
+      <button class="nav-item" data-view="activity">◷ <span>Activity</span></button>
+      <button class="nav-item" data-view="travel">✈ <span>Travel Mode</span></button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="system-card">
+        <span class="pulse"></span>
+        <div>
+          <b>Simulation online</b>
+          <small>Local prototype</small>
         </div>
-      </header>
+      </div>
+      <button class="nav-item" data-view="settings">⚙ <span>Settings</span></button>
+    </div>
+  </aside>
 
-      <section class="content">
-        <div class="hero">
+  <main class="main">
+
+    <header class="topbar">
+      <button class="mobile-menu" id="mobileMenu">☰</button>
+
+      <div class="crumb">
+        <span>Home</span>
+        <b>/</b>
+        <strong id="pageTitle">Dashboard</strong>
+      </div>
+
+      <div class="top-actions">
+        <div class="live-pill"><i></i> LIVE SIMULATION</div>
+        <button class="icon-btn" id="themeBtn">☼</button>
+      </div>
+    </header>
+
+    <section class="content">
+
+      <div class="hero">
+        <div>
+          <p class="eyebrow" id="currentDate">Loading date...</p>
+          <h1><span id="greeting">Good day, Admin.</span> 👋</h1>
+          <p class="muted">Your home is under control. Monitor every appliance from one place.</p>
+        </div>
+
+        <div class="home-mode">
           <div>
-            <p class="eyebrow">TUESDAY • Nov 17, 2026</p>
-            <h1>Good Morning, <span>Admin.</span> 👋</h1>
-            <p class="muted">Your home is under control. Monitor every appliance from one place.</p>
+            <small>HOME MODE</small>
+            <strong id="modeLabel">At Home</strong>
           </div>
-          <div class="home-mode">
-            <div><small>HOME MODE</small><strong id="modeLabel">At Home</strong></div>
-            <button class="mode-switch" id="modeSwitch"><span></span></button>
+          <button class="mode-switch" id="modeSwitch"><span></span></button>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+
+      <div id="dashboardView">
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">◈</div>
+            <div><span>Total devices</span><strong id="totalDevices">0</strong></div>
+            <em>connected</em>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon green">●</div>
+            <div><span>Currently ON</span><strong id="onDevices">0</strong></div>
+            <em id="onPercent">0%</em>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon amber">ϟ</div>
+            <div><span>Energy today</span><strong id="energyToday">0 kWh</strong></div>
+            <em>estimated</em>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon red">!</div>
+            <div><span>Attention</span><strong id="alertCount">0</strong></div>
+            <em id="alertLabel">all clear</em>
           </div>
         </div>
 
-        <div id="dashboardView">
-          <div class="stats-grid">
-            <div class="stat-card"><div class="stat-icon blue">◈</div><div><span>Total devices</span><strong id="totalDevices">0</strong></div><em>connected</em></div>
-            <div class="stat-card"><div class="stat-icon green">●</div><div><span>Currently ON</span><strong id="onDevices">0</strong></div><em id="onPercent">0%</em></div>
-            <div class="stat-card"><div class="stat-icon amber">ϟ</div><div><span>Energy today</span><strong id="energyToday">0.0 kWh</strong></div><em>estimated</em></div>
-            <div class="stat-card"><div class="stat-icon red">!</div><div><span>Attention</span><strong id="alertCount">0</strong></div><em id="alertLabel">all clear</em></div>
+        <div class="section-head">
+          <div>
+            <h2>Appliances</h2>
+            <p class="muted">Control your simulated household devices.</p>
           </div>
 
-          <div class="section-head"><div><h2>Appliances</h2><p class="muted">Control your simulated household devices.</p></div><div class="filters"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="on">On</button><button class="filter" data-filter="off">Off</button></div></div>
-          <div class="device-grid" id="deviceGrid"></div>
-
-          <div class="lower-grid">
-            <section class="panel alert-panel"><div class="panel-head"><h3>Smart alerts</h3><span class="count" id="alertBadge">0</span></div><div id="alerts"></div></section>
-            <section class="panel quick-panel"><div class="panel-head"><h3>Quick actions</h3></div><div class="quick-actions"><button id="allOff">⏻ <span>Turn everything OFF</span></button><button id="allOn">◉ <span>Turn everything ON</span></button><button id="refreshBtn">↻ <span>Refresh simulation</span></button><button id="randomBtn">✦ <span>Simulate activity</span></button></div></section>
+          <div class="filters">
+            <button class="filter active" data-filter="all">All</button>
+            <button class="filter" data-filter="on">On</button>
+            <button class="filter" data-filter="off">Off</button>
           </div>
         </div>
 
-        <div id="devicesView" class="hidden view-panel"><div class="section-head"><div><h2>All devices</h2><p class="muted">Every supported household appliance in the prototype.</p></div></div><div class="device-grid" id="allDeviceGrid"></div></div>
-        <div id="energyView" class="hidden view-panel"><div class="section-head"><div><h2>Energy center</h2><p class="muted">Estimated usage for demonstration purposes.</p></div></div><div class="energy-layout"><div class="panel energy-total"><span>Estimated cost today</span><strong id="energyCost">₹0.00</strong><small>Assumption: ₹8.00 / kWh</small><div class="energy-bar"><span id="energyBar"></span></div></div><div class="panel"><div class="panel-head"><h3>Consumption by device</h3></div><div id="energyRows"></div></div></div></div>
-        <div id="activityView" class="hidden view-panel"><div class="section-head"><div><h2>Activity log</h2><p class="muted">Recent actions performed in this simulation.</p></div><button class="secondary" id="clearLog">Clear log</button></div><div class="panel"><div id="activityLog" class="activity-log"></div></div></div>
-        <div id="settingsView" class="hidden view-panel"><div class="section-head"><div><h2>Settings</h2><p class="muted">Prototype configuration.</p></div></div><div class="panel settings"><label>Simulation speed<select id="speedSelect"><option value="1">Normal</option><option value="2">Fast</option><option value="0.5">Slow</option></select></label><label>Energy price (₹/kWh)<input id="priceInput" type="number" min="1" step="0.5" value="8"></label><div class="notice">ℹ️ SwitchSync is a software prototype. It does not control real household mains electricity.</div></div></div>
-      </section>
-      <footer>SwitchSync • CTI First-Year Engineering Project • Software Simulation</footer>
-    </main>
-  </div>
-  <div class="toast" id="toast"></div>
-  <!-- =========================
-     ADMIN PROFILE PANEL
-     ========================= -->
+        <div class="device-grid" id="deviceGrid"></div>
+
+        <div class="lower-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Smart alerts</h3>
+              <span class="count" id="alertBadge">0</span>
+            </div>
+            <div id="alerts"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h3>Quick actions</h3></div>
+            <div class="quick-actions">
+              <button id="allOff">⏻ <span>Turn everything OFF</span></button>
+              <button id="allOn">◉ <span>Turn everything ON</span></button>
+              <button id="refreshBtn">↻ <span>Refresh simulation</span></button>
+              <button id="randomBtn">✦ <span>Simulate activity</span></button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ALL DEVICES -->
+
+      <div id="devicesView" class="hidden view-panel">
+        <div class="section-head">
+          <div>
+            <h2>All Devices</h2>
+            <p class="muted">Manage all household appliances.</p>
+          </div>
+        </div>
+        <div class="device-grid" id="allDeviceGrid"></div>
+      </div>
+
+      <!-- ENERGY -->
+
+      <div id="energyView" class="hidden view-panel">
+        <div class="section-head">
+          <div>
+            <h2>Energy Center</h2>
+            <p class="muted">Estimated electricity consumption.</p>
+          </div>
+        </div>
+
+        <div class="energy-layout">
+          <div class="panel energy-total">
+            <span>Estimated cost today</span>
+            <strong id="energyCost">₹0.00</strong>
+            <small>Based on your electricity price setting</small>
+            <div class="energy-bar"><span id="energyBar"></span></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Consumption by device</h3></div>
+            <div id="energyRows"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY -->
+
+      <div id="activityView" class="hidden view-panel">
+        <div class="section-head">
+          <div>
+            <h2>Activity Log</h2>
+            <p class="muted">Recent actions performed in this simulation.</p>
+          </div>
+          <button class="secondary" id="clearLog">Clear log</button>
+        </div>
+
+        <div class="panel">
+          <div id="activityLog" class="activity-log"></div>
+        </div>
+      </div>
+
+      <!-- TRAVEL MODE -->
+
+      <div id="travelView" class="hidden view-panel">
+
+        <div class="section-head">
+          <div>
+            <h2>✈ Travel Mode</h2>
+            <p class="muted">Prepare your home before leaving for a trip.</p>
+          </div>
+          <span class="travel-status" id="travelStatus">No trip planned</span>
+        </div>
+
+        <div class="travel-grid">
+
+          <section class="panel trip-panel">
+            <h3>Plan Your Trip</h3>
+            <p class="muted">Enter your travel dates and save your plan.</p>
+
+            <label>
+              Departure Date
+              <input type="date" id="departureDate">
+            </label>
+
+            <label>
+              Return Date
+              <input type="date" id="returnDate">
+            </label>
+
+            <label>
+              Trip Details
+              <input type="text" id="tripNote" placeholder="Example: Family vacation">
+            </label>
+
+            <div class="travel-actions">
+              <button class="primary-btn" id="saveTrip">Save Trip Plan</button>
+              <button class="secondary" id="activateTravel">Activate Travel Mode</button>
+            </div>
+
+            <div class="notice">
+              ✈ Travel Mode helps you review and switch off simulated appliances before leaving.
+            </div>
+          </section>
+
+          <section class="panel travel-monitor">
+            <h3>Travel Monitor</h3>
+            <p class="muted">Your home's simulated appliance status.</p>
+
+            <div class="travel-summary">
+              <div>
+                <span>Appliances ON</span>
+                <strong id="travelMonitorOn">0</strong>
+              </div>
+              <div>
+                <span>Appliances OFF</span>
+                <strong id="travelMonitorOff">0</strong>
+              </div>
+            </div>
+
+            <div class="trip-info">
+              <span>Trip duration</span>
+              <strong id="tripDuration">Not planned</strong>
+            </div>
+
+            <div class="trip-info">
+              <span>Travel status</span>
+              <strong id="travelMonitorStatus">At Home</strong>
+            </div>
+
+            <button class="primary-btn full-btn" id="travelAllOff">
+              ⏻ Switch All Appliances OFF
+            </button>
+
+            <button class="secondary full-btn" id="refreshChecklist">
+              ↻ Refresh Checklist
+            </button>
+          </section>
+
+        </div>
+
+        <section class="panel checklist-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Home Safety Checklist</h3>
+              <p class="muted">Check appliance status before leaving.</p>
+            </div>
+          </div>
+
+          <div id="travelChecklist"></div>
+        </section>
+
+      </div>
+
+      <!-- SETTINGS -->
+
+      <div id="settingsView" class="hidden view-panel">
+        <div class="section-head">
+          <div>
+            <h2>Settings</h2>
+            <p class="muted">Prototype configuration.</p>
+          </div>
+        </div>
+
+        <div class="panel settings">
+          <label>
+            Simulation Speed
+            <select id="speedSelect">
+              <option value="1">Normal</option>
+              <option value="2">Fast</option>
+              <option value="0.5">Slow</option>
+            </select>
+          </label>
+
+          <label>
+            Energy Price (₹/kWh)
+            <input type="number" id="priceInput" min="1" step="0.5" value="8">
+          </label>
+
+          <div class="notice">
+            ℹ️ SwitchSync is a software simulation. It does not control real household electrical appliances.
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <footer>SwitchSync • CTI First-Year Engineering Project • Software Simulation</footer>
+
+  </main>
+</div>
+
+<!-- ADMIN PROFILE -->
 
 <div class="profile-overlay" id="profileOverlay">
-
   <div class="profile-panel">
-
-    <button class="profile-close" id="profileClose">
-      ×
-    </button>
-
-    <div class="profile-avatar">
-      A
-    </div>
-
+    <button class="profile-close" id="profileClose">×</button>
+    <div class="profile-avatar">A</div>
     <h2>Admin</h2>
-
-    <p class="profile-role">
-      Home Administrator
-    </p>
+    <p class="profile-role">Home Administrator</p>
 
     <div class="profile-info">
-
       <div class="profile-row">
-        <span>System</span>
-        <strong>SwitchSync</strong>
+        <span>System</span><strong>SwitchSync</strong>
       </div>
-
       <div class="profile-row">
-        <span>Devices</span>
-        <strong>20</strong>
+        <span>Devices</span><strong>20</strong>
       </div>
-
       <div class="profile-row">
-        <span>Current Mode</span>
-        <strong id="profileMode">At Home</strong>
+        <span>Current Mode</span><strong id="profileMode">At Home</strong>
       </div>
-
       <div class="profile-row">
-        <span>System Status</span>
-        <strong class="profile-online">
-          ● Online
-        </strong>
+        <span>System Status</span><strong class="profile-online">● Online</strong>
       </div>
-
     </div>
 
-    <button class="profile-done" id="profileDone">
-      Close
-    </button>
-
+    <button class="profile-done" id="profileDone">Close</button>
   </div>
-
 </div>
-  <script src="app.js"></script>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
 </body>
-
-
-  <script>
-function acvtime()
-{}
-    
-  </script>
 </html>
